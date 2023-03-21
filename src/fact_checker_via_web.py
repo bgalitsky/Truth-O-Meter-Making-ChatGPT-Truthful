@@ -1,7 +1,9 @@
 import spacy
 import argparse
 
+from entity_extractor import get_entities_to_add_to_the_following_sentence, pronouns_short
 from external_apis.bing_searcher import BingSearcher
+from nlp_utils.allow_list_manager import AllowListManager
 from src.html.verification_page_builder import VerificationPageBuilder
 from phrase_enumeration_manager import extract_conj_triple_from_text
 from third_party_models.chat_gpt_answer_format_adapter import adapt_chatgpt_format
@@ -17,6 +19,8 @@ truth_o_meter_THRESH = 0.91
 def compute_similarity(sent1: str, sent2: str):
     sim = nlp(sent1).similarity(nlp(sent2))
     return sim
+
+
 
 def clean_list(list):
     cleaned = []
@@ -38,9 +42,34 @@ def clean_phrase(phrase):
 class FactCheckerViaWeb():
     def __init__(self):
         self.html_builder = VerificationPageBuilder()
+        self.vocabs = AllowListManager()
 
-    def fact_check_sentence(self, raw_text: str):
-        web_pages = BingSearcher().run_search_for_a_query_and_offset(raw_text, 0)
+    def pronouns_in_sentence(self, sentence: str) ->bool:
+        tokens = sentence.split(' ')
+        for t in tokens:
+            if t in pronouns_short:
+                return True
+        return False
+
+    def not_acceptable_phrase_as_suspicious(self, phrase: str) -> bool:
+        tokens = phrase.split(' ')
+        for t in tokens:
+            if t in self.vocabs.sentiment_words:
+                return True
+            if t in pronouns_short:
+                return True
+
+        return False
+
+    def fact_check_sentence(self, current_sentence: str, prev_sentence:str)->str:
+        query = current_sentence+''
+        # if needs to rely on coreference
+        if self.pronouns_in_sentence(current_sentence) and prev_sentence:
+            entities = get_entities_to_add_to_the_following_sentence(nlp(prev_sentence))
+            prefix_for_it = " ".join(entities)
+            query = prefix_for_it + " " + query
+
+        web_pages = BingSearcher().run_search_for_a_query_and_offset(query, 0)
         web_text = ""
         count = 0
         if web_pages:
@@ -61,7 +90,7 @@ class FactCheckerViaWeb():
                     break
 
         doc_seed_phrases = []
-        doc_seed = nlp(raw_text.lower())
+        doc_seed = nlp(current_sentence.lower())
         for np in doc_seed.noun_chunks:
             doc_seed_phrases.append(clean_phrase(np.text))
 
@@ -76,7 +105,7 @@ class FactCheckerViaWeb():
         missing_in_seed = list(set(doc_snippet_phrases) - set(doc_seed_phrases))
         missing_in_snippet = list(set(doc_seed_phrases) - set(doc_snippet_phrases))
 
-        conj_phrases = extract_conj_triple_from_text(nlp(raw_text))
+        conj_phrases = extract_conj_triple_from_text(nlp(current_sentence))
         missing_in_snippet_filtered = []
         if conj_phrases:
             for m in missing_in_snippet:
@@ -130,9 +159,11 @@ class FactCheckerViaWeb():
             if m in map_phrase_score:
                 if map_phrase_score[m] > truth_o_meter_THRESH:
                     continue
+                if self.not_acceptable_phrase_as_suspicious(m):
+                    continue
             missing_in_snippet_filtered_score.append(m)
 
-        page = self.html_builder.insert_bookmarks_in_sentence(raw_text, missing_in_snippet_filtered, web_pages, map_seed_hit, map_snip_seed)
+        page = self.html_builder.insert_bookmarks_in_sentence(current_sentence, missing_in_snippet_filtered_score, web_pages, map_seed_hit, map_snip_seed)
         return page
 
     # fact-check text
@@ -144,9 +175,11 @@ class FactCheckerViaWeb():
             raw_texts.append(sent.text)
 
         content = ""
-        for text in raw_texts:
-            print(text)
-            section = self.fact_check_sentence(text)
+        for i in range(len(raw_texts)):
+            if i>0:
+                section = self.fact_check_sentence(raw_texts[i], raw_texts[i-1])
+            else:
+                section = self.fact_check_sentence(raw_texts[i], None)
             print(section)
             print()
             content += '\n' + section

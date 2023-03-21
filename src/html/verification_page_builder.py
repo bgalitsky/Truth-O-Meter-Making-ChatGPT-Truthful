@@ -33,8 +33,11 @@ class VerificationPageBuilder():
         proposed_change_sentence = orig_sentence + ''
         for phrase in suspicious_phrases:
             tag = phrase.replace(' ', '_')[0:10] + str(random.randint(1, 999))
-            hit_num = map_seed_hit[phrase]
-            tag_map[hit_num] = tag
+            if phrase in map_seed_hit:
+                hit_num = map_seed_hit[phrase]
+                tag_map[hit_num] = tag
+            else:
+                print("missed phrase "+phrase)
             orig_sentence = orig_sentence.replace(phrase, f"<a href=\"#{tag}\">{phrase}</a>")
 
         for phrase in suspicious_phrases:
