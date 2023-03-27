@@ -1,12 +1,9 @@
 
 from sentence_transformers import SentenceTransformer, util
 
-import spacy
-
 from external_apis.bing_searcher import BingSearcher
+from fact_checker_via_web import nlp
 from nlp_utils.string_distance_measurer import StringDistanceMeasurer
-
-nlp = spacy.load("en_core_web_sm")
 
 model = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
 
@@ -20,7 +17,7 @@ def compute_similarity(sent1: str, sent2: str):
 
 def fact_check_sentence(raw_text: str):
     web_pages = BingSearcher().run_search_for_a_query_and_offset(raw_text, 0)
-    path = 'resources'
+    path = 'nlp_utils/allow_list_manager/resources'
     sim_curr = -1
     if web_pages:
         for w in web_pages:

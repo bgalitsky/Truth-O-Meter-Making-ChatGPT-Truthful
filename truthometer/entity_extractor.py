@@ -1,9 +1,15 @@
 from typing import List
 import spacy
-#nlp = spacy.load("en_core_web_lg")
 
-pronouns_short = ['I', 'he', 'him' 'his', 'her', 'theirs', 'someone', 'it',
-            'hers','whose', 'these', 'those','that']
+# nlp = spacy.load("en_core_web_lg")
+
+pronouns_short = ['I', 'he', 'him', 'his', 'her', 'theirs', 'someone', 'it', 'they',
+                  'hers', 'whose', 'these', 'those', 'that', 'which', 'one', 'ones',
+                  "us", "you", "them", "who", "what", "which", "me", "ourselves",
+                  "ourself", "yourselves", "herself", "itself", "themselves",
+                  "themself", "myself", "ours", "yours", "its", "theirs",
+                  "oneself", "your", "whom", "mine", "himself", "its", "their", "one's"
+                  ]
 """ 
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 from transformers import pipeline
@@ -27,16 +33,16 @@ for token in doc:
 sent = "Local cuisine: Anamur is known for its delicious local cuisine, which includes dishes such as stuffed mussels, grilled octopus, and goat meat."
 
 
-
-def get_entities_to_add_to_the_following_sentence(doc)->List[str]:
+def get_entities_to_add_to_the_following_sentence(doc) -> List[str]:
     words = []
     for word in doc.ents:
         if word.label_ in ['NORP', 'FAC', 'ORG', 'GPE', 'LOC', 'PRODUCT', 'EVENT', 'PERSON']:
             words.append(word.text)
-        #print(word.label_)
+        # print(word.label_)
     return words
 
-#print(get_entities_to_add_to_the_following_sentence(nlp(sent)))
+
+# print(get_entities_to_add_to_the_following_sentence(nlp(sent)))
 
 """
 SpaCy recognizes the following built-in entity types:

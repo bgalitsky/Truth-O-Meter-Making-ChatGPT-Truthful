@@ -1,0 +1,23 @@
+<html> 
+<head></head>
+<body>
+<h2>Text with suspicious facts</h2>
+python -m streamlit.cli run
+ <br>
+<h2>Text with <i>suggested rewrites</i></h2>python -m streamlit.cli run
+ <br>
+
+<h2>Sentence and its Verification</h2>python -m streamlit.cli run
+<h3>Verification</h3><p><a href="https://docs.streamlit.io/knowledge-base/using-streamlit/how-do-i-run-my-streamlit-script"> How do I run my Streamlit script? - Streamlit Docs</a></p><br>Run Streamlit as a Python module. Another way of running Streamlit is to run it as a Python module. This is useful when configuring an IDE like PyCharm to work with Streamlit: # Running python -m streamlit run your_script.py. # is equivalent to: streamlit run your_script.py.<br>
+<p><a href="https://stackoverflow.com/questions/60172282/how-to-run-debug-a-streamlit-application-from-an-ide"> How to run/debug a streamlit application from an IDE</a></p><br>The -m streamlit run goes into the interpreter options field of the Run/Debug Configuration (this is supported by Streamlit, so has guarantees to not be broken in the future 1 ), the code.py goes into the Script path field as expected.<br>
+<p><a href="https://docs.streamlit.io/library/advanced-features/cli"> Command-line options - Streamlit Docs</a></p><br>The purpose of this tool is to run Streamlit apps, change Streamlit configuration options, and help you diagnose and fix issues. To see all of the supported commands: streamlit --help Run Streamlit apps streamlit run your_script.py [-- script args] Runs your app. At any time you can stop the server with Ctrl+c. push_pin Note<br>
+<p><a href="https://docs.streamlit.io/library/advanced-features/configuration"> Configuration - Streamlit Docs</a></p><br>As described in Command-line options, you can view all available configuration option using: streamlit config show. The command above will print something like this: # Streamlit version: 1.20.0 [global] # By default, Streamlit checks if the Python watchdog module is available and, if not, prints a warning asking for you to install it.<br>
+<p><a href="https://stackoverflow.com/questions/73514548/no-module-named-streamlit-cli"> python - No module named 'streamlit.cli' - Stack Overflow</a></p><br>python - No module named 'streamlit.cli' - Stack Overflow No module named 'streamlit.cli' Ask Question Asked 6 months ago Modified 2 months ago Viewed 3k times 1 I am using MAC and downloaded the streamlit package using conda-forge. I am getting an error message as below.<br>
+<p><a href="https://stackoverflow.com/questions/68162180/modulenotfounderror-no-module-named-streamlit-cli"> ModuleNotFoundError: No module named 'streamlit.cli'</a></p><br>You can run python files through streamlit as usual: streamlit run my_file.py Create a new environment with streamlit Directly go to the folder where your project is located, click on the address bar then click on "Copy link as text", then change your working directory through cd /your_copied_path Create a new pipenv environment in that folder<br>
+<p><a href="https://discuss.streamlit.io/t/run-streamlit-from-pycharm/21624"> Run streamlit from PyCharm - 🎈 Using Streamlit - Streamlit</a></p><br>A very similar and equivalent way of invoking streamlit that is supported (so has guarantees to not be broken in the future) is to simply run: python -m streamlit <command> instead. Alternatively, another way of running streamlit from PyCharm is described here: Version 1.5.0 - #11 by tim<br>
+<p><a href="https://discuss.streamlit.io/t/invoking-python-subprocess-in-streamlit-to-run-script-file/22867"> Invoking Python subprocess in Streamlit to run script file</a></p><br>Invoking Python subprocess in Streamlit to run script file Daniel_Hutchinson March 7, 2022, 8:43pm 1 Greetings, I’m working on a Streamlit script to run a script file (.sh) through the command line in a Linux environment. I examined this thread in the documentation for guidance, but no luck so far.<br>
+<br>
+
+ 
+</body>
+</html>

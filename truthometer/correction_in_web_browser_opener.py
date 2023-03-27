@@ -1,6 +1,5 @@
 import os
 import webbrowser
-import platform
 
 from pandas.io.clipboard import clipboard_get
 
