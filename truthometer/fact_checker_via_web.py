@@ -1,12 +1,12 @@
 import spacy
 import argparse
 
-from entity_extractor import get_entities_to_add_to_the_following_sentence, pronouns_short
-from external_apis.bing_searcher import BingSearcher
-from nlp_utils.allow_list_manager import AllowListManager
-from html.verification_page_builder import VerificationPageBuilder
-from phrase_enumeration_manager import extract_conj_triple_from_text, extract_conj_triple_from_sentence
-from third_party_models.chat_gpt_answer_format_adapter import adapt_chatgpt_format
+from truthometer.html import VerificationPageBuilder
+from truthometer.entity_extractor import get_entities_to_add_to_the_following_sentence, pronouns_short
+from truthometer.external_apis.bing_searcher import BingSearcher
+from truthometer.nlp_utils.allow_list_manager import AllowListManager
+from truthometer.phrase_enumeration_manager import extract_conj_triple_from_text, extract_conj_triple_from_sentence
+from truthometer.third_party_models.chat_gpt_answer_format_adapter import adapt_chatgpt_format
 from pandas.io.clipboard import clipboard_get
 
 #spacy nlp

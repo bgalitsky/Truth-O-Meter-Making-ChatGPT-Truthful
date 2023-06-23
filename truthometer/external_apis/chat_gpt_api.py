@@ -1,7 +1,7 @@
 # Note: you need to be using OpenAI Python v0.27.0 for the code below to work
 import openai
 
-from src.key_manager import provider_key
+from truthometer.key_manager import provider_key
 
 openai.api_key = provider_key['openai']
 result = openai.ChatCompletion.create(

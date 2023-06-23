@@ -1,6 +1,6 @@
 import requests
 
-from src.key_manager import provider_key
+from truthometer.key_manager import provider_key
 
 google_key = provider_key['google']
 cx = provider_key['cx']
@@ -27,7 +27,7 @@ for result in json_data['items']:
     print(result['link'])
 
 """
-<script async src="https://cse.google.com/cse.js?cx=b0bb8317b601f4286">
+<script async truthometer="https://cse.google.com/cse.js?cx=b0bb8317b601f4286">
 </script>
 <div class="gcse-search"></div>
 """

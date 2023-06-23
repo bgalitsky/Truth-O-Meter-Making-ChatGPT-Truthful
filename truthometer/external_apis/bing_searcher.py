@@ -6,7 +6,7 @@ import pickle
 import pandas as pd
 from pathlib import Path
 
-from src.key_manager import provider_key
+from truthometer.key_manager import provider_key
 
 endpoint = "https://api.bing.microsoft.com/v7.0/search"
 mkt = 'en-US'

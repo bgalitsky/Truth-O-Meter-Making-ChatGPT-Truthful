@@ -1,7 +1,9 @@
 from typing import List
 import spacy
 
-# nlp = spacy.load("en_core_web_lg")
+#nlp = spacy.load("en_core_web_lg")
+
+entity_types_of_interest = ['NORP', 'FAC', 'ORG', 'GPE', 'LOC', 'PRODUCT', 'EVENT', 'PERSON']
 
 pronouns_short = ['I', 'he', 'him', 'his', 'her', 'theirs', 'someone', 'it', 'they',
                   'hers', 'whose', 'these', 'those', 'that', 'which', 'one', 'ones',
@@ -36,13 +38,53 @@ sent = "Local cuisine: Anamur is known for its delicious local cuisine, which in
 def get_entities_to_add_to_the_following_sentence(doc) -> List[str]:
     words = []
     for word in doc.ents:
-        if word.label_ in ['NORP', 'FAC', 'ORG', 'GPE', 'LOC', 'PRODUCT', 'EVENT', 'PERSON']:
+        if word.label_ in entity_types_of_interest:
             words.append(word.text)
         # print(word.label_)
     return words
 
 
+def match_entities_in_a_pair_of_phrase_docs(phrase_doc1, phrase_doc2):
+    ents1 = []
+    ents2 = []
+    ents_phrs1 = {}
+    ents_phrs2 = {}
+    for word in phrase_doc1.ents:
+        if word.label_ in entity_types_of_interest:
+            ents1.append(word.text)
+            ents_phrs1[word.label_] = word.text
+
+    for word in phrase_doc2.ents:
+        if word.label_ in entity_types_of_interest:
+            ents2.append(word.text)
+            ents_phrs2[word.label_] = word.text
+    #find unmatched entity type
+    ents2_diff = ents2.copy()
+    ents1_diff = ents1.copy()
+
+    ents2_diff.difference(ents1)
+    ents1_diff.difference(ents2)
+
+    missing_words1 = []
+    missing_words2 = []
+    for e in ents2_diff:
+        missing_words1.append(ents_phrs2.get(e))
+    for e in ents1_diff:
+        missing_words2.append(ents_phrs1.get(e))
+
+    return missing_words1, missing_words2
+
+""" 
+if __name__ == '__main__':
+    sent1 = "Rajesh Trivedi is a CEO of Microsoft"
+    sent2 = "Rajesh Trivedi - Founder & CEO - Astra"
+    phrase_doc1 = nlp(sent1)
+    phrase_doc2 = nlp(sent2)
+    match_map = match_entities_in_a_pair_of_phrase_docs(phrase_doc1, phrase_doc2)
+    print(match_map)
+
 # print(get_entities_to_add_to_the_following_sentence(nlp(sent)))
+"""
 
 """
 SpaCy recognizes the following built-in entity types:

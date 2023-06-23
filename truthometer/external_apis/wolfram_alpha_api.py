@@ -3,7 +3,7 @@
 import requests
 from wolframalpha import Client
 
-from src.key_manager import provider_key
+from truthometer.key_manager import provider_key
 
 wolfram_key = provider_key['wolfram']
 

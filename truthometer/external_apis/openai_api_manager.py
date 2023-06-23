@@ -1,7 +1,7 @@
 import os
 import openai
 
-from src.key_manager import provider_key
+from truthometer.key_manager import provider_key
 
 """
 curl https://api.openai.com/v1/completions \
