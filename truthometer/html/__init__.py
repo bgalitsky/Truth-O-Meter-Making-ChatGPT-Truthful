@@ -1,0 +1,1 @@
+from truthometer.html.verification_page_builder import VerificationPageBuilder
