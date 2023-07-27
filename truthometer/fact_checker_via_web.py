@@ -1,6 +1,7 @@
 import spacy
 import argparse
 
+from nlp_utils.verb_phrase_processor import VerbPhraseProcessor
 from truthometer.html import VerificationPageBuilder
 from truthometer.entity_extractor import get_entities_to_add_to_the_following_sentence, pronouns_short
 from truthometer.external_apis.bing_searcher import BingSearcher
@@ -51,10 +52,47 @@ def clean_phrase(phrase):
         phrase_clean = phrase_clean[4:1000]
     return phrase_clean.lower()
 
+
+def reject_substitution_candidate(miss_snip:str, miss_seed:str, snippet_verb_phrases, seed_verb_phrases)->bool:
+    if miss_snip in snippet_verb_phrases and miss_seed not in seed_verb_phrases:
+        return False
+    if miss_snip not in snippet_verb_phrases and miss_seed in seed_verb_phrases:
+        return False
+
+    toks1 = miss_snip.split()
+    toks2 = miss_seed.split()
+    l1 = len(toks1)
+    l2 = len(toks2)
+    if l1==1 and l2 == 1:
+        return False
+
+    if abs(l1-l2)>1:
+        return True
+
+    overlap = list(set(toks1) & set(toks2))
+    if len(overlap)<1 or len(overlap[0])<4:
+        return True
+
+
+def additional_filter(missing_in_snippet_filtered_score, map_snip_seed):
+    phrase_del = []
+    for phrase in missing_in_snippet_filtered_score:
+        if phrase in map_snip_seed:
+            map_phrase = map_snip_seed.get(phrase)
+            if map_phrase.split()[-1] == phrase.split()[-1]  and len(phrase.split()[-1])>3:
+                phrase_del.append(phrase)
+        else:
+            phrase_del.append(phrase)
+
+
+    return list(set(missing_in_snippet_filtered_score) - set(phrase_del)), map_snip_seed
+
+
 class FactCheckerViaWeb():
     def __init__(self):
         self.html_builder = VerificationPageBuilder()
         self.vocabs = AllowListManager()
+        self.verb_phrase_proc = VerbPhraseProcessor()
 
     def pronouns_in_sentence(self, sentence: str) ->bool:
         tokens = sentence.lower().split(' ')
@@ -109,13 +147,21 @@ class FactCheckerViaWeb():
 
         doc_seed_phrases = []
         doc_seed = nlp(current_sentence.lower())
+
+        seed_verb_phrases = self.verb_phrase_proc.extract_verb_phrases(doc_seed)
         for np in doc_seed.noun_chunks:
             doc_seed_phrases.append(clean_phrase(np.text))
+        if  len(doc_seed_phrases)<4:
+            for vp in seed_verb_phrases:
+                doc_seed_phrases.append(clean_phrase(vp))
 
         doc_snippet_phrases = []
         doc_snippet = nlp(web_text.lower())
+        snippet_verb_phrases = self.verb_phrase_proc.extract_verb_phrases(doc_snippet)
         for np in doc_snippet.noun_chunks:
             doc_snippet_phrases.append(clean_phrase(np.text))
+        for vp in snippet_verb_phrases:
+            doc_snippet_phrases.append(clean_phrase(vp))
 
         doc_snippet_phrases = clean_list(doc_snippet_phrases)
         doc_seed_phrases = clean_list(doc_seed_phrases)
@@ -155,7 +201,8 @@ class FactCheckerViaWeb():
             sim_curr = -1
 
             for miss_seed in missing_in_seed:
-
+                if reject_substitution_candidate(miss_snip, miss_seed, snippet_verb_phrases, seed_verb_phrases):
+                    continue
                 sim = nlp(miss_snip).similarity(nlp(miss_seed))
                 if sim> sim_curr:
                     sim_curr = sim
@@ -208,10 +255,11 @@ class FactCheckerViaWeb():
             #if m in map_phrase_score:
             #    if map_phrase_score[m] > truth_o_meter_THRESH:
             #        continue
-
             missing_in_snippet_filtered_score.append(m)
 
-        page = self.html_builder.insert_bookmarks_in_sentence(current_sentence, missing_in_snippet_filtered_score, web_pages, map_seed_hit, map_snip_seed)
+        missing_in_snippet_filtered_score_a, map_snip_seed_a = additional_filter(missing_in_snippet_filtered_score, map_snip_seed)
+
+        page = self.html_builder.insert_bookmarks_in_sentence(current_sentence, missing_in_snippet_filtered_score_a, web_pages, map_seed_hit, map_snip_seed_a)
         return page
 
     # fact-check text

@@ -10,6 +10,13 @@ html_footer = """
 </html>"""
 
 
+def replace_upper_lower_case(sentence:str, old_phrase:str, new_phrase:str)->str:
+    sentence_lower = sentence.lower()
+    pos_start = sentence_lower.find(old_phrase.lower())
+    pos_end = pos_start + len(old_phrase)
+    return sentence[0:pos_start] + new_phrase + sentence[pos_end:len(sentence)]
+
+
 class VerificationPageBuilder():
     def __init__(self):
         self.verif_page_content = ""
@@ -45,14 +52,14 @@ class VerificationPageBuilder():
                 pos_start = verif_sentence.lower().find(phrase)
                 verif_sentence = verif_sentence[0:pos_start] + f"<s>{phrase}</s>" + verif_sentence[pos_start+len(phrase):10000000]
             else:
-                verif_sentence = verif_sentence.replace(phrase, f"<s>{phrase}</s>")
+                verif_sentence = replace_upper_lower_case(verif_sentence, phrase, f"<s>{phrase}</s>")
         self.verif_page_content += verif_sentence + '\n <br>'
 
 
         for phrase in suspicious_phrases:
             if phrase in map_snip_seed:
                 new_phrase = map_snip_seed[phrase]
-                proposed_change_sentence = proposed_change_sentence.replace(phrase, f"<i>{new_phrase}</i>")
+                proposed_change_sentence = replace_upper_lower_case(proposed_change_sentence, phrase, f"<i>{new_phrase}</i>")
         self.suggested_rewrite += proposed_change_sentence+ '\n <br>'
 
         background_text_for_sentence = f"<h3>Verification</h3>"
