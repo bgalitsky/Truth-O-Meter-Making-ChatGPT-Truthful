@@ -4,9 +4,6 @@ import requests
 import time
 import pickle
 import pandas as pd
-from pathlib import Path
-
-from truthometer.key_manager import provider_key
 
 endpoint = "https://api.bing.microsoft.com/v7.0/search"
 mkt = 'en-US'
@@ -14,6 +11,7 @@ count = 50
 
 class BingSearcher():
     def __init__(self):
+        from truthometer.key_manager import provider_key
         self.query_results_cache = {}
         self.phrase_snippets = []
         self.phrase_snippets_current = []
@@ -75,6 +73,8 @@ class BingSearcher():
 
 
 if __name__ == '__main__':
+    import os
+    os.chdir("..")
     web_pages = BingSearcher().run_search_for_a_query_and_offset('what is distance between istanbul and ankara', 0)
     path = 'resources'
     if not web_pages:

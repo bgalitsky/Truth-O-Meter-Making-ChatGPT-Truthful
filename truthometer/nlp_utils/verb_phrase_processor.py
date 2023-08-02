@@ -1,6 +1,33 @@
 import re
 
 
+def clean_phrase(phrase):
+    phrase_clean = phrase.replace('\n', '').replace('  ', ' ').strip().rstrip()
+    if phrase_clean.startswith('a '):
+        phrase_clean = phrase_clean[2:1000]
+    if phrase_clean.startswith('an '):
+        phrase_clean = phrase_clean[3:1000]
+    if phrase_clean.startswith('the '):
+        phrase_clean = phrase_clean[4:1000]
+    return phrase_clean.lower()
+
+def add_subsume_to_list(result_list, element, sub_not_super = True):
+    results = []
+    v_del = []
+    if sub_not_super:
+        for v in result_list:
+            if v.find(element) > -1:
+                v_del.append(v)
+    """             
+    else:
+        for v in result_list:
+            if element.find(v) > -1:
+                v_del.append(v)
+    """
+    results = list(set(result_list) - set(v_del))
+    if element not in results:
+        results.append(clean_phrase(element))
+    return results
 
 class VerbPhraseProcessor():
 
@@ -49,6 +76,9 @@ class VerbPhraseProcessor():
                     mylist.append(fulltok)
         return mylist
 
+
+
+
     def extract_verb_phrases(self, doc):
         verb_phrases = []
         verb_phrases_updated = []
@@ -70,12 +100,15 @@ class VerbPhraseProcessor():
                 if len(verb_phrase.split())<2:
                     continue
                 # should be the shortest phrase
+                verb_phrases_updated = add_subsume_to_list(verb_phrases_updated, verb_phrase)
+                """ 
                 v_del = []
                 for v in verb_phrases:
                     if v.find(verb_phrase) > -1:
                         v_del.append(v)
                 verb_phrases.append(verb_phrase)
                 verb_phrases_updated = list(set(verb_phrases) - set(v_del))
+                """
 
         return verb_phrases_updated
 

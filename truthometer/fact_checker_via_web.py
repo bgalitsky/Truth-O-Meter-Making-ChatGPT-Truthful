@@ -1,7 +1,9 @@
 import spacy
 import argparse
 
-from nlp_utils.verb_phrase_processor import VerbPhraseProcessor
+from truthometer.external_apis.google_serp_searcher import GoogleSerpSearcher
+from truthometer.nlp_utils.noun_phrase_processor import NounPhraseProcessor
+from truthometer.nlp_utils.verb_phrase_processor import VerbPhraseProcessor, clean_phrase
 from truthometer.html import VerificationPageBuilder
 from truthometer.entity_extractor import get_entities_to_add_to_the_following_sentence, pronouns_short
 from truthometer.external_apis.bing_searcher import BingSearcher
@@ -21,6 +23,12 @@ def compute_similarity(sent1: str, sent2: str):
     sim = nlp(sent1).similarity(nlp(sent2))
     return sim
 
+def run_web_search(query:str, is_bing = True):
+    if is_bing:
+        results = BingSearcher().run_search_for_a_query_and_offset(query, 0)
+    else:
+        results = GoogleSerpSearcher().run_search_for_a_query(query)
+    return results
 
 
 def clean_list(list):
@@ -38,20 +46,7 @@ def clean_list(list):
             if b_all_token_ok:
                 cleaned.append(l)
 
-
     return cleaned
-
-
-def clean_phrase(phrase):
-    phrase_clean = phrase.replace('\n','').replace('  ',' ').strip().rstrip()
-    if phrase_clean.startswith('a '):
-        phrase_clean = phrase_clean[2:1000]
-    if phrase_clean.startswith('an '):
-        phrase_clean = phrase_clean[3:1000]
-    if phrase_clean.startswith('the '):
-        phrase_clean = phrase_clean[4:1000]
-    return phrase_clean.lower()
-
 
 def reject_substitution_candidate(miss_snip:str, miss_seed:str, snippet_verb_phrases, seed_verb_phrases)->bool:
     if miss_snip in snippet_verb_phrases and miss_seed not in seed_verb_phrases:
@@ -73,7 +68,6 @@ def reject_substitution_candidate(miss_snip:str, miss_seed:str, snippet_verb_phr
     if len(overlap)<1 or len(overlap[0])<4:
         return True
 
-
 def additional_filter(missing_in_snippet_filtered_score, map_snip_seed):
     phrase_del = []
     for phrase in missing_in_snippet_filtered_score:
@@ -93,6 +87,7 @@ class FactCheckerViaWeb():
         self.html_builder = VerificationPageBuilder()
         self.vocabs = AllowListManager()
         self.verb_phrase_proc = VerbPhraseProcessor()
+        self.noun_phrase_proc = NounPhraseProcessor(nlp)
 
     def pronouns_in_sentence(self, sentence: str) ->bool:
         tokens = sentence.lower().split(' ')
@@ -111,6 +106,8 @@ class FactCheckerViaWeb():
 
         # second: singe word should be a noun
         if len(phrase.split())==1:
+            if self.noun_phrase_proc.vocab_manager.is_in_abstract_noun(phrase):
+                return True
             doc_single_word = nlp(phrase)[0]
             if doc_single_word.pos_ in ['X', 'NOUN', 'PROPN'] or doc_single_word.ent_type_ in ['NORP', 'FAC', 'ORG', 'GPE', 'LOC', 'PRODUCT', 'EVENT', 'PERSON']:
                 return False
@@ -125,7 +122,7 @@ class FactCheckerViaWeb():
             prefix_for_it = " ".join(entities)
             query = prefix_for_it + " " + query
 
-        web_pages = BingSearcher().run_search_for_a_query_and_offset(query, 0)
+        web_pages =  run_web_search(query, True) #:BingSearcher().run_search_for_a_query_and_offset(query, 0)
         web_text = ""
         count = 0
         if web_pages:
@@ -158,12 +155,10 @@ class FactCheckerViaWeb():
         doc_snippet_phrases = []
         doc_snippet = nlp(web_text.lower())
         snippet_verb_phrases = self.verb_phrase_proc.extract_verb_phrases(doc_snippet)
-        for np in doc_snippet.noun_chunks:
-            doc_snippet_phrases.append(clean_phrase(np.text))
-        for vp in snippet_verb_phrases:
-            doc_snippet_phrases.append(clean_phrase(vp))
-
+        doc_snippet_phrases+= self.noun_phrase_proc.extract_complex_np(doc_snippet) + snippet_verb_phrases
         doc_snippet_phrases = clean_list(doc_snippet_phrases)
+
+
         doc_seed_phrases = clean_list(doc_seed_phrases)
 
         missing_in_seed = list(set(doc_snippet_phrases) - set(doc_seed_phrases))
