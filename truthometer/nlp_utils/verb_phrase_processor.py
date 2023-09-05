@@ -135,7 +135,7 @@ if __name__ == '__main__':
     nlp = spacy.load("en_core_web_lg")
 
     texts = ["Boris Galitsky is CEO of Microsoft",
-        "Alexander Pushkin was born in Japan",
+        "Alexander Pushkin was born in Japan in 2020",
         "After many years Spacy has suddently become a monster-package in the NLP world.",
        "The machine that kills life will be decommissioned soon.",
        "This means that there is less competition for land and housing compared to other states where land is scarce, which can help keep prices relatively low."]

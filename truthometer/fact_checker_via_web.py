@@ -15,13 +15,9 @@ from pandas.io.clipboard import clipboard_get
 #spacy nlp
 nlp = spacy.load("en_core_web_lg")
 
+#truth_o_meter_THRESH = 0.91
 
 
-truth_o_meter_THRESH = 0.91
-
-def compute_similarity(sent1: str, sent2: str):
-    sim = nlp(sent1).similarity(nlp(sent2))
-    return sim
 
 def run_web_search(query:str, is_bing = True):
     if is_bing:
@@ -68,16 +64,24 @@ def reject_substitution_candidate(miss_snip:str, miss_seed:str, snippet_verb_phr
     if len(overlap)<1 or len(overlap[0])<4:
         return True
 
+
 def additional_filter(missing_in_snippet_filtered_score, map_snip_seed):
     phrase_del = []
     for phrase in missing_in_snippet_filtered_score:
+        # if we want to replace by the phrase with the same head noun, abort rejection
         if phrase in map_snip_seed:
             map_phrase = map_snip_seed.get(phrase)
-            if map_phrase.split()[-1] == phrase.split()[-1]  and len(phrase.split()[-1])>3:
+            if map_phrase.split()[-1] == phrase.split()[-1]  and len(phrase.split()[-1])>3 and len(phrase.split())<3:
                 phrase_del.append(phrase)
-        else:
-            phrase_del.append(phrase)
+        #else:
+        #    phrase_del.append(phrase)
 
+    missing_in_snippet_filtered_score = list(set(missing_in_snippet_filtered_score) - set(phrase_del))
+    #remove subsumtion
+    for phrase in missing_in_snippet_filtered_score:
+        for phrase1 in missing_in_snippet_filtered_score:
+            if phrase.find(phrase1)>-1 and not phrase ==phrase1:
+                phrase_del.append(phrase1)
 
     return list(set(missing_in_snippet_filtered_score) - set(phrase_del)), map_snip_seed
 
@@ -114,6 +118,47 @@ class FactCheckerViaWeb():
 
         return False
 
+    def build_substitution_map(self, missing_in_snippet_filtered, missing_in_seed, snippet_verb_phrases, seed_verb_phrases, web_pages):
+        map_phrase_score = {}
+        map_snip_seed = {}
+        map_seed_hit = {}
+        web_text = ""
+        for miss_snip in missing_in_snippet_filtered:
+            sim_curr = -1
+
+            for miss_seed in missing_in_seed:
+                if reject_substitution_candidate(miss_snip, miss_seed, snippet_verb_phrases, seed_verb_phrases):
+                    continue
+                sim = self.noun_phrase_proc.compute_similarity(miss_snip, miss_seed)
+                if sim > sim_curr:
+                    sim_curr = sim
+                    map_snip_seed[miss_snip] = miss_seed
+                    map_phrase_score[miss_snip] = sim
+                    count = 0
+                    # find which hit has a closest phrase
+                    for w in web_pages:
+                        try:
+                            if not w:
+                                break
+
+                            title = w.get('name')
+                            snippet = w.get('snippet')
+                            web_text += " " + title + ". " + snippet
+                            if web_text.find(miss_seed) > -1:
+                                map_seed_hit[miss_snip] = count
+                                break
+
+                        except Exception as ex:
+                            print(ex)
+                        count += 1
+                        if count > 50:
+                            break
+                    # if no similarity at all, just set to default 0
+                    if miss_snip not in map_seed_hit:
+                        map_seed_hit[miss_snip] = 0
+        return map_phrase_score, map_snip_seed, map_seed_hit
+
+    # main fact-check function
     def fact_check_sentence(self, current_sentence: str, prev_sentence:str)->str:
         query = current_sentence+''
         # if needs to rely on coreference
@@ -143,17 +188,18 @@ class FactCheckerViaWeb():
                     break
 
         doc_seed_phrases = []
-        doc_seed = nlp(current_sentence.lower())
+        doc_seed = nlp(current_sentence)
 
         seed_verb_phrases = self.verb_phrase_proc.extract_verb_phrases(doc_seed)
-        for np in doc_seed.noun_chunks:
-            doc_seed_phrases.append(clean_phrase(np.text))
+        #for np in doc_seed.noun_chunks:
+        #    doc_seed_phrases.append(clean_phrase(np.text))
+        doc_seed_phrases = self.noun_phrase_proc.extract_complex_np(doc_seed)
         if  len(doc_seed_phrases)<4:
             for vp in seed_verb_phrases:
                 doc_seed_phrases.append(clean_phrase(vp))
 
         doc_snippet_phrases = []
-        doc_snippet = nlp(web_text.lower())
+        doc_snippet = nlp(web_text)
         snippet_verb_phrases = self.verb_phrase_proc.extract_verb_phrases(doc_snippet)
         doc_snippet_phrases+= self.noun_phrase_proc.extract_complex_np(doc_snippet) + snippet_verb_phrases
         doc_snippet_phrases = clean_list(doc_snippet_phrases)
@@ -190,42 +236,9 @@ class FactCheckerViaWeb():
                 continue
             missing_in_snippet_filtered.append(miss_snip)
 
-            # find phrase in snippets closest to the wrong word in raw_text
-        map_phrase_score = {}
-        for miss_snip in missing_in_snippet_filtered:
-            sim_curr = -1
-
-            for miss_seed in missing_in_seed:
-                if reject_substitution_candidate(miss_snip, miss_seed, snippet_verb_phrases, seed_verb_phrases):
-                    continue
-                sim = nlp(miss_snip).similarity(nlp(miss_seed))
-                if sim> sim_curr:
-                    sim_curr = sim
-                    map_snip_seed[miss_snip] = miss_seed
-                    map_phrase_score[miss_snip] = sim
-                    count = 0
-                    # find which hit has a closest phrase
-                    for w in web_pages:
-                        try:
-                            if not w:
-                                break
-
-                            title = w.get('name')
-                            snippet = w.get('snippet')
-                            web_text += " " + title + ". " + snippet
-                            if web_text.find(miss_seed)>-1:
-                                map_seed_hit[miss_snip] = count
-                                break
-
-                        except Exception as ex:
-                            print(ex)
-                        count += 1
-                        if count > 50:
-                            break
-                    # if no similarity at all, just set to default 0
-                    if miss_snip not in map_seed_hit:
-                        map_seed_hit[miss_snip] = 0
-
+        # find phrase in snippets closest to the wrong word in raw_text
+        map_phrase_score, map_snip_seed, map_seed_hit = self.build_substitution_map(missing_in_snippet_filtered, missing_in_seed, snippet_verb_phrases,
+                               seed_verb_phrases, web_pages)
         # first filter the map if candidate wrong phrase covers or is covered by the closest phrase in web_text
         prohib_miss_snip = []
         """ 
@@ -254,8 +267,8 @@ class FactCheckerViaWeb():
 
         missing_in_snippet_filtered_score_a, map_snip_seed_a = additional_filter(missing_in_snippet_filtered_score, map_snip_seed)
 
-        page = self.html_builder.insert_bookmarks_in_sentence(current_sentence, missing_in_snippet_filtered_score_a, web_pages, map_seed_hit, map_snip_seed_a)
-        return page
+        page, sent_with_error = self.html_builder.insert_bookmarks_in_sentence(current_sentence, missing_in_snippet_filtered_score_a, web_pages, map_seed_hit, map_snip_seed_a)
+        return page, sent_with_error
 
     # fact-check text
     def perform_and_report_fact_check_for_text(self, text:str)->str:
@@ -268,9 +281,9 @@ class FactCheckerViaWeb():
         content = ""
         for i in range(len(raw_texts)):
             if i>0:
-                section = self.fact_check_sentence(raw_texts[i], raw_texts[i-1])
+                section, s = self.fact_check_sentence(raw_texts[i], raw_texts[i-1])
             else:
-                section = self.fact_check_sentence(raw_texts[i], None)
+                section, s = self.fact_check_sentence(raw_texts[i], None)
             print(section)
             print()
             content += '\n' + section

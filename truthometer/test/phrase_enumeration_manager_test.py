@@ -1,5 +1,3 @@
-import spacy
-
 from fact_checker_via_web import nlp
 from phrase_enumeration_manager import extract_conj_triple_from_text
 

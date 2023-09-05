@@ -1,6 +1,6 @@
 import pytest
 
-from fact_checker_via_web import FactCheckerViaWeb, nlp
+from fact_checker_via_web import FactCheckerViaWeb
 from third_party_models.chat_gpt_answer_format_adapter import adapt_chatgpt_format
 
 
@@ -24,7 +24,7 @@ class TestFactChecker:
              "Fraud and corruption within a bank can lead to its failure. "
              ,
              # expressions in <s>...</s> like <s>textbooks</s> are purhaps not truthful
-             'Fraud and corruption within a bank can lead to its failure.'
+             'Fraud and corruption within a bank can lead to its failure. '
              ' <br>Discourse analysis can be used to analyze classroom interactions, '
              '<s>textbooks</s>, and <s>educational policies</s>.'
              ' <br>Discourse analysis can be used to analyze political speeches, '
@@ -106,6 +106,12 @@ class TestFactChecker:
             'inventory. <br>Florida has a relatively high housing inventory, meaning '
             'there are more homes for sale than in some other states. <br>This can help '
             'keep prices down as sellers compete for buyers. <br>'
+            ),
+            (
+                "Chapaev was known to have several horses during the war, but it is not clear which ones were his favorites or the most significant to him. "
+                "One of his horses was a bay mare named Sivka, which he acquired from a peasant during the war. Sivka became well-known as Chapaev's mount and was even mentioned in some of the literature about him. "
+                "Another horse that Chapaev was said to have owned was a white stallion named Makhno, which he reportedly rode during some of his military campaigns.",
+                ""
             )
 
         ]

@@ -26,16 +26,17 @@ class VerificationPageBuilder():
     def write_html_page(self, text, content):
         suffix = text[0:15].replace(' ', '_')
         filename = f"verification_page_{suffix}.html"
-        my_html_file = open(filename, "w")
+        my_html_file = open(filename, "w", encoding='utf-8')
 
         my_html_file.write(html_header + '<h2>Text with suspicious facts</h2>\n' +
                            self.verif_page_content + '\n<h2>Text with <i>suggested rewrites</i></h2>' +
-                           self.suggested_rewrite +'\n'+content + '\n' + html_footer)
+                           self.suggested_rewrite +'\n'+content + '\n' + html_footer, )
         my_html_file.close()
         return filename
 
     def insert_bookmarks_in_sentence(self, orig_sentence, suspicious_phrases, web_pages, map_seed_hit, map_snip_seed):
         tag_map = {}
+        sentence_with_marked_errors = orig_sentence + ''
         verif_sentence = orig_sentence + ''
         proposed_change_sentence = orig_sentence + ''
         for phrase in suspicious_phrases:
@@ -45,7 +46,9 @@ class VerificationPageBuilder():
                 tag_map[hit_num] = tag
             else:
                 print("missed phrase "+phrase)
-            orig_sentence = orig_sentence.replace(phrase, f"<a href=\"#{tag}\">{phrase}</a>")
+            #orig_sentence = orig_sentence.replace(phrase, f"<a href=\"#{tag}\">{phrase}</a>")
+            orig_sentence = replace_upper_lower_case(orig_sentence, phrase, f"<a href=\"#{tag}\">{phrase}</a>")
+            sentence_with_marked_errors = replace_upper_lower_case(sentence_with_marked_errors, phrase, f"<s>{phrase}<s>")
 
         for phrase in suspicious_phrases:
             if verif_sentence.find(phrase)<0:
@@ -83,4 +86,5 @@ class VerificationPageBuilder():
                 if count > 7:
                     break
 
-        return '<h2>Sentence and its Verification</h2>' + orig_sentence + '\n' + background_text_for_sentence + '<br>\n'
+        return '<h2>Sentence and its Verification</h2>' + orig_sentence + '\n' + background_text_for_sentence + '<br>\n',  \
+               sentence_with_marked_errors
