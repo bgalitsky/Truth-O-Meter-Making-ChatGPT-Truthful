@@ -2,32 +2,37 @@ import http.client
 import json
 
 
-
-
 class GoogleSerpSearcher():
-  def __init__(self):
-      from key_manager import provider_key
-      self.google_serp_key = provider_key['google_serp']
-      self.headers =  {
+    def __init__(self, api_key=None):
+        from truthometer.key_manager import provider_key
+        try:
+            self.google_serp_key = provider_key['google_serp']
+        except:
+            assert api_key, "you should use your own google serp api key"
+            self.google_serp_key = api_key
+        self.headers =  {
           'X-API-KEY': self.google_serp_key,
           'Content-Type': 'application/json'
-      }
-      self.conn = http.client.HTTPSConnection("google.serper.dev")
+        }
+        self.conn = http.client.HTTPSConnection("google.serper.dev")
+        if api_key:
+            self.google_serp_key = api_key
 
-  def run_search_for_a_query(self, query: str):
-      payload = json.dumps({
+    def run_search_for_a_query(self, query: str):
+        payload = json.dumps({
           "q": query,
           'num': 100
-      })
+        })
 
-      self.conn.request("POST", "/search", payload, self.headers)
-      res = self.conn.getresponse()
-      data = res.read()
-      # to match tags of Bing
-      data_str = data.decode("utf-8").replace('\"title\"', '\"name\"')
-      json_object = json.loads(data_str)
-      return json_object.get("organic")
+        self.conn.request("POST", "/search", payload, self.headers)
+        res = self.conn.getresponse()
+        data = res.read()
+        # to match tags of Bing
+        data_str = data.decode("utf-8").replace('\"title\"', '\"name\"')
+        json_object = json.loads(data_str)
+        return json_object.get("organic")
 
+    
 if __name__ == '__main__':
     import os
     os.chdir("..")
