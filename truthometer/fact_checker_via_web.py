@@ -271,7 +271,7 @@ class FactCheckerViaWeb():
         return page, sent_with_error
 
     # fact-check text
-    def perform_and_report_fact_check_for_text(self, text:str, api_key:str=None)->str:
+    def perform_and_report_fact_check_for_text(self, text:str, is_bing:bool=True, api_key:str=None)->str:
         raw_texts=[]
         text = adapt_chatgpt_format(text)
         doc = nlp(text)
@@ -281,9 +281,9 @@ class FactCheckerViaWeb():
         content = ""
         for i in range(len(raw_texts)):
             if i>0:
-                section, s = self.fact_check_sentence(raw_texts[i], raw_texts[i-1], api_key)
+                section, s = self.fact_check_sentence(raw_texts[i], raw_texts[i-1], is_bing, api_key)
             else:
-                section, s = self.fact_check_sentence(raw_texts[i], None, api_key)
+                section, s = self.fact_check_sentence(raw_texts[i], None, is_bing, api_key)
             print(section)
             print()
             content += '\n' + section
