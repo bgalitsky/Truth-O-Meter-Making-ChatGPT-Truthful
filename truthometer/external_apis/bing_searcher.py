@@ -5,12 +5,13 @@ import time
 import pickle
 import pandas as pd
 
+
 endpoint = "https://api.bing.microsoft.com/v7.0/search"
 mkt = 'en-US'
 count = 50
 
 class BingSearcher():
-    def __init__(self):
+    def __init__(self, api_key=None):
         from truthometer.key_manager import provider_key
         self.query_results_cache = {}
         self.phrase_snippets = []
@@ -20,6 +21,8 @@ class BingSearcher():
         self.report_df = pd.DataFrame()
         self.collection_path = ""
         self.bing_key = provider_key['bing']
+        if api_key:
+            self.bing_key = api_key
 
         self.download_only = False
         try:
