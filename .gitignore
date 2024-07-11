@@ -1,0 +1,9 @@
+
+truthometer/.DS_Store
+truthometer/bingSearchResultsCache.bin
+truthometer/external_apis/.DS_Store
+*.pyc
+truthometer/langchain/.DS_Store
+truthometer/third_party_models/.DS_Store
+*.pyc
+truthometer/nlp_utils/__pycache__/verb_phrase_processor.cpython-39.pyc

@@ -2,7 +2,7 @@ import spacy
 import argparse
 
 from truthometer.external_apis.google_serp_searcher import GoogleSerpSearcher
-from truthometer.nlp_utils.noun_phrase_processor import NounPhraseProcessor
+from truthometer.nlp_utils.noun_phrase_processor import NounPhraseProcessor, remove_subsume, remove_subsume_list
 from truthometer.nlp_utils.verb_phrase_processor import VerbPhraseProcessor, clean_phrase
 from truthometer.html import VerificationPageBuilder
 from truthometer.entity_extractor import get_entities_to_add_to_the_following_sentence, pronouns_short
@@ -19,11 +19,11 @@ nlp = spacy.load("en_core_web_lg")
 
 
 
-def run_web_search(query:str, is_bing = True, api_key=None):
+def run_web_search(query:str, is_bing = True):
     if is_bing:
-        results = BingSearcher(api_key).run_search_for_a_query_and_offset(query, 0)
+        results = BingSearcher().run_search_for_a_query_and_offset(query, 0)
     else:
-        results = GoogleSerpSearcher(api_key).run_search_for_a_query(query)
+        results = GoogleSerpSearcher().run_search_for_a_query(query)
     return results
 
 
@@ -88,7 +88,8 @@ def additional_filter(missing_in_snippet_filtered_score, map_snip_seed):
 
 class FactCheckerViaWeb():
     def __init__(self):
-        self.html_builder = VerificationPageBuilder()
+
+        self.html_builder = VerificationPageBuilder(use_llm = False)
         self.vocabs = AllowListManager()
         self.verb_phrase_proc = VerbPhraseProcessor()
         self.noun_phrase_proc = NounPhraseProcessor(nlp)
@@ -159,7 +160,7 @@ class FactCheckerViaWeb():
         return map_phrase_score, map_snip_seed, map_seed_hit
 
     # main fact-check function
-    def fact_check_sentence(self, current_sentence: str, prev_sentence:str, is_bing:bool=True, api_key:str=None)->str:
+    def fact_check_sentence(self, current_sentence: str, prev_sentence:str)->str:
         query = current_sentence+''
         # if needs to rely on coreference
         if self.pronouns_in_sentence(current_sentence) and prev_sentence:
@@ -167,7 +168,7 @@ class FactCheckerViaWeb():
             prefix_for_it = " ".join(entities)
             query = prefix_for_it + " " + query
 
-        web_pages =  run_web_search(query, is_bing, api_key) #:BingSearcher().run_search_for_a_query_and_offset(query, 0)
+        web_pages =  run_web_search(query, True) #:BingSearcher().run_search_for_a_query_and_offset(query, 0)
         web_text = ""
         count = 0
         if web_pages:
@@ -223,10 +224,6 @@ class FactCheckerViaWeb():
         map_snip_seed = {}
         map_seed_hit = {}
 
-        # print("missing_in_seed:")
-        # print(missing_in_seed)
-        # print("missing_in_snippet:")
-        # print(missing_in_snippet)
         web_text_lower = web_text.lower()
         missing_in_snippet_filtered = []
         for miss_snip in missing_in_snippet_altered:
@@ -266,12 +263,16 @@ class FactCheckerViaWeb():
             missing_in_snippet_filtered_score.append(m)
 
         missing_in_snippet_filtered_score_a, map_snip_seed_a = additional_filter(missing_in_snippet_filtered_score, map_snip_seed)
+        
+        map_snip_seed_cleaned = remove_subsume(map_snip_seed_a)
+        missing_in_snippet_filtered_score_a_cleaned = remove_subsume_list(missing_in_snippet_filtered_score_a)
 
-        page, sent_with_error = self.html_builder.insert_bookmarks_in_sentence(current_sentence, missing_in_snippet_filtered_score_a, web_pages, map_seed_hit, map_snip_seed_a)
+
+        page, sent_with_error = self.html_builder.insert_bookmarks_in_sentence(current_sentence, missing_in_snippet_filtered_score_a_cleaned, web_pages, map_seed_hit, map_snip_seed_cleaned, map_phrase_score)
         return page, sent_with_error
 
     # fact-check text
-    def perform_and_report_fact_check_for_text(self, text:str, is_bing:bool=True, api_key:str=None)->str:
+    def perform_and_report_fact_check_for_text(self, text:str)->str:
         raw_texts=[]
         text = adapt_chatgpt_format(text)
         doc = nlp(text)
@@ -281,9 +282,9 @@ class FactCheckerViaWeb():
         content = ""
         for i in range(len(raw_texts)):
             if i>0:
-                section, s = self.fact_check_sentence(raw_texts[i], raw_texts[i-1], is_bing, api_key)
+                section, s = self.fact_check_sentence(raw_texts[i], raw_texts[i-1])
             else:
-                section, s = self.fact_check_sentence(raw_texts[i], None, is_bing, api_key)
+                section, s = self.fact_check_sentence(raw_texts[i], None)
             print(section)
             print()
             content += '\n' + section
@@ -307,3 +308,5 @@ if __name__ == '__main__':
         text = clipboard_get()
     fact_checker = FactCheckerViaWeb()
     page_path = fact_checker.perform_and_report_fact_check_for_text(text)
+
+

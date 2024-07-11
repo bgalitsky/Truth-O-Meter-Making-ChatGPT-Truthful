@@ -109,8 +109,15 @@ class VerbPhraseProcessor():
                 verb_phrases.append(verb_phrase)
                 verb_phrases_updated = list(set(verb_phrases) - set(v_del))
                 """
+        verb_phrases_not_more_than_three = []
+        for vp in verb_phrases_updated:
+            vs = vp.split()
+            if len(vs)>3:
+                verb_phrases_not_more_than_three.append(' '.join(vs[1:len(vs)]))
+            else:
+                verb_phrases_not_more_than_three.append(vp)
 
-        return verb_phrases_updated
+        return verb_phrases_not_more_than_three
 
     def extract_verb_phrases_via_nsubjpass(doc):
         verb_phrases = []
