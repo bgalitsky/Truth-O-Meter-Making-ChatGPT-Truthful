@@ -1,7 +1,7 @@
 import streamlit as st
-import streamlit_theme as stt
-from streamlit.report_thread import get_report_ctx
-import streamlit_authenticator as stauth
+#import streamlit_theme as stt
+#from streamlit.report_thread import get_report_ctx
+#import streamlit_authenticator as stauth
 import datetime
 import json
 import os
@@ -15,11 +15,11 @@ def local_css(file_name):
 
 
 def main():
-    ctx = get_report_ctx()
+#    ctx = get_report_ctx()
     st.set_page_config(layout='wide', page_title="Truth-o-meter")
 #    local_css("visualization/highlight.css")
 
-    stt.set_theme({'primary': '#EA6B4F'})
+#    stt.set_theme({'primary': '#EA6B4F'})
     st.set_option('deprecation.showfileUploaderEncoding', False)
 
     hide_streamlit_style = """
@@ -55,7 +55,7 @@ def main():
     fact_checker = FactCheckerViaWeb()
     
     
-    sess_id = ctx.session_id
+ #   sess_id = ctx.session_id
     run = st.button('Check and correct')
     # st.markdown(sess_id)
     if tool_selector == "Bing":
@@ -68,22 +68,11 @@ def main():
         api_key = token
     
     date = datetime.datetime.now().strftime("%Y-%m-%d")
-    if os.path.exists("counter_api{}.txt".format(date)):
-        with open("counter_api{}.txt".format(date), "r") as f:
-            cur = int(f.readlines()[0])
-    else:
-        cur = 0
-    if cur < 50:
-        cur += 1
-        with open("counter_api{}.txt".format(date), "w") as f:
-            f.write(str(cur))
-    else:
-        assert api_key is not None, "The maximum number of checks for the default token has been reached for today. Please provide another token."
-    
+
     if run:
-        html_report_filename = fact_checker.perform_and_report_fact_check_for_text(input_text, is_bing, api_key)
+        html_report_filename = fact_checker.perform_and_report_fact_check_for_text(input_text) #, is_bing, api_key)
         #html_report_filename = "verification_page_Alexander_Pushk.html"
-        with open(html_report_filename, "r") as f:
+        with open(html_report_filename, "r",  encoding='utf-8') as f:
             st.markdown(f.read().split("<body>")[1].split("</body>")[0], unsafe_allow_html=True)
         
         
